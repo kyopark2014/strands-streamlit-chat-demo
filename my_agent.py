@@ -26,6 +26,7 @@ system_prompt = """
 class MyAgent():
     def __init__(self):
         self.mcp_client = None
+        self.use_aws_client = None
         self.agent = None
 
     def initialize_mcp(self):
@@ -38,9 +39,20 @@ class MyAgent():
                         disabled=False,
                         autoApprove=[]
                     )
-                ))
+                ))                
                 self.mcp_client.start()
+                
+                self.use_aws_client = MCPClient(lambda: stdio_client(
+                    StdioServerParameters(
+                        command='python',
+                        args=['mcp_server_use_aws.py']
+                    )
+                ))
+                self.use_aws_client.start()
+
                 tools = self.mcp_client.list_tools_sync()
+                tools.extend(self.use_aws_client.list_tools_sync())
+                
                 self.agent = Agent(model=bedrock_model, system_prompt=system_prompt, tools=tools)
             except Exception as e:
                 print(f"MCP 초기화 실패: {e}")
